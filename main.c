@@ -14,7 +14,12 @@ typedef struct {
 
 } SUBJECT;
 
+//functions signatures (beggining)
 void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector);
+
+int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, char* text);
+
+//end of functions signatures
 
 int main() {
 
@@ -22,6 +27,7 @@ int main() {
     SUBJECT* user_subjects;
     int user_subjects_counter = 0;
 
+    //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use 
     user_subjects_rw('r', &user_subjects_counter, user_subjects);
 
     //window initializing
@@ -94,4 +100,9 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector) {
             break;
     }
 
+}
+
+int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, char* text) {
+// the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
+// using the returned value. 
 }
