@@ -1,0 +1,6 @@
+ # Mac exclusive files
+.DS_Store
+
+ # Testing related files
+testando*
+user_subjects.bin
