@@ -4,3 +4,6 @@
  # Testing related files
 testando*
 user_subjects.bin
+
+ # My interface sketches 
+*.xopp
