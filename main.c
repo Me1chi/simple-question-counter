@@ -5,6 +5,8 @@
 #define SCREENWIDTH 1200.0
 #define SCREENHEIGHT 675.0
 #define BLANKSPACESIZE 20.0
+#define STANDARDBUTTONCURVE 0.5
+#define SHADOWCOLOR (Color){40, 40, 40, 180}
 
 typedef struct {
 
@@ -16,9 +18,9 @@ typedef struct {
 } SUBJECT;
 
 //functions signatures (beggining)
-void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector);
+void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector);
 
-int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, char* text);
+int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable);
 
 //end of functions signatures
 
@@ -29,7 +31,7 @@ int main() {
     int user_subjects_counter = 0;
 
     //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use 
-    user_subjects_rw('r', &user_subjects_counter, user_subjects);
+    user_subjects_rw('r', &user_subjects_counter, &user_subjects);
 
     //window initializing
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Question counter");
@@ -41,12 +43,12 @@ int main() {
 
         ClearBackground(DARKGRAY);
 
-        button_logic_drawing((Vector2){SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 100}, (Vector2) {200, 200}, RED, "Teste");
+        button((Vector2){SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 100}, (Vector2) {200, 200}, RED, "Teste", true);
 
         EndDrawing();
     }
 
-    user_subjects_rw('w', &user_subjects_counter, user_subjects);
+    user_subjects_rw('w', &user_subjects_counter, &user_subjects);
 
     //window closing 
     CloseWindow();
@@ -59,7 +61,7 @@ int main() {
 
 }
 
-void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector) {
+void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
 
     FILE *fileptr;
 
@@ -73,11 +75,11 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector) {
                     //allocates memory at runtime to store the user subjects
                     if (fread(&read, sizeof(read), 1, fileptr) == 1) {
                         if (*subjects == 0)
-                            subject_vector = malloc(sizeof(SUBJECT));
+                            *subject_vector = malloc(sizeof(SUBJECT));
                         else 
-                            subject_vector = (SUBJECT *)realloc(subject_vector, (*subjects)*sizeof(SUBJECT));
+                            *subject_vector = (SUBJECT *)realloc(*subject_vector, (*subjects)*sizeof(SUBJECT));
 
-                        subject_vector[*subjects] = read;
+                        (*subject_vector)[*subjects] = read;
 
                         (*subjects)++;
                     }
@@ -92,7 +94,7 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector) {
         case 'w':
             if ((fileptr = fopen("user_subjects.bin", "wb")) != NULL) {
                 
-                if (fwrite(subject_vector, sizeof(SUBJECT), *subjects, fileptr) != *subjects)
+                if (fwrite(*subject_vector, sizeof(SUBJECT), *subjects, fileptr) != *subjects)
                     printf("Error in file writing!\n");
 
             } else
@@ -104,11 +106,11 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT* subject_vector) {
 
 }
 
-int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, char* text) {
+int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable) {
 // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
 // using the returned value. 
 
-    float font_size = SCREENHEIGHT/20;
+    float font_size = SCREENHEIGHT/20.0;
 
     bool hovering = false;
     int click = 0;
@@ -122,16 +124,26 @@ int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, cha
     };
 
     //button highlight and click
-    if (CheckCollisionPointRec(mouse_pointer, button)) {
+    if (CheckCollisionPointRec(mouse_pointer, button) && clickable) {
         hovering = true;
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             click = 1;
     }
 
-    //button drawing 
-    DrawRectangleRounded(button, 0.6, 20, button_color);
+    //button lines drawing 
+    DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, BLACK);
     
-    DrawRectangleRoundedLines(button, 0.6, 20, 1, BLACK);
+    float delta = button.width/100.0;
+
+    button.x += delta;
+    button.y += delta;
+    button.width -= 2*delta;
+    button.height -= 2*delta;
+
+    //button fill drawing
+    DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, button_color);
+
+    //button text drawing
 
     Vector2 text_size = MeasureTextEx(GetFontDefault(), text, font_size, 2);
 
@@ -140,5 +152,10 @@ int button_logic_drawing(Vector2 position, Vector2 size, Color button_color, cha
 
     DrawTextEx(GetFontDefault(), text, position, font_size, 2, BLACK);
     
+    //button highlight drawing
+    if (hovering) {
+        DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, SHADOWCOLOR);
+    }
+
     return click;
 }
