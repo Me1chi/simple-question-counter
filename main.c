@@ -4,8 +4,9 @@
 
 #define SCREENWIDTH 1200.0
 #define SCREENHEIGHT 675.0
-#define BLANKSPACESIZE 20.0
-#define STANDARDBUTTONCURVE 0.5
+#define BLANKSPACESIZE 30.0
+#define STANDARDBUTTONCURVE 0.3
+#define BUTTONLINETHICKNESSDIV 400.0
 #define SHADOWCOLOR (Color){40, 40, 40, 180}
 
 typedef struct {
@@ -22,6 +23,14 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector);
 
 int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable);
 
+void push_coord_right(Vector2* coordinates, float distance);
+
+int question_button_kit(Vector2* initial_button_pos, float big_size, float small_size, Color button_color, int number_to_display);
+
+void wont_be_negative(int* number);
+
+void draw_centralized_text(Vector2 button_position, Vector2 button_size, float font_size, char* text, Color text_color); //meant to use inside a button
+
 //end of functions signatures
 
 int main() {
@@ -33,17 +42,40 @@ int main() {
     //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use 
     user_subjects_rw('r', &user_subjects_counter, &user_subjects);
 
+    //buttons drawing control (for the counter)
+    float big_button_size = (SCREENWIDTH - 4*BLANKSPACESIZE)/3;
+
+    float small_button_size = (big_button_size - BLANKSPACESIZE/2)/2;
+
+    Vector2 button_drawing_pos;
+
+    //target fps = 60!!!
+    SetTargetFPS(60);
+
     //window initializing
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Question counter");
 
 
+    SUBJECT user_test = {0};
+
+
     while (!WindowShouldClose()) {
+
+        //button position reset
+        button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE};
 
         BeginDrawing();
 
         ClearBackground(DARKGRAY);
 
-        button((Vector2){SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 100}, (Vector2) {200, 200}, RED, "Teste", true);
+        user_test.wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, RED, user_test.wrong_answers);
+        wont_be_negative(&user_test.wrong_answers);
+
+        user_test.medium_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, YELLOW, user_test.medium_answers);
+        wont_be_negative(&user_test.medium_answers);
+
+        user_test.right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, GREEN, user_test.right_answers);
+        wont_be_negative(&user_test.right_answers);
 
         EndDrawing();
     }
@@ -110,7 +142,7 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
 // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
 // using the returned value. 
 
-    float font_size = SCREENHEIGHT/20.0;
+    float font_size = SCREENHEIGHT/5.0;
 
     bool hovering = false;
     int click = 0;
@@ -133,7 +165,8 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
     //button lines drawing 
     DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, BLACK);
     
-    float delta = button.width/100.0;
+    //float delta = button.width/100.0;
+    float delta = SCREENWIDTH/BUTTONLINETHICKNESSDIV;
 
     button.x += delta;
     button.y += delta;
@@ -144,18 +177,66 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
     DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, button_color);
 
     //button text drawing
+    draw_centralized_text(position, size, font_size, text, BLACK);
 
-    Vector2 text_size = MeasureTextEx(GetFontDefault(), text, font_size, 2);
-
-    position.x += size.x/2 - text_size.x/2.0;
-    position.y += size.y/2 - text_size.y/2.0;
-
-    DrawTextEx(GetFontDefault(), text, position, font_size, 2, BLACK);
-    
     //button highlight drawing
     if (hovering) {
         DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, SHADOWCOLOR);
     }
 
     return click;
+}
+
+void push_coord_right(Vector2* coordinates, float distance) {
+
+    coordinates->x += distance;
+
+}
+
+int question_button_kit(Vector2* initial_button_pos, float big_size, float small_size, Color button_color, int number_to_display) {
+
+    //variables assigning
+    int count = 0;
+
+    char number_text[14] = {0};
+
+    Vector2 big_button_position = *initial_button_pos;
+
+    Vector2 small_button_position = {initial_button_pos->x, 
+    initial_button_pos->y + big_size + BLANKSPACESIZE/2};
+
+    Vector2 big_size_vec = {big_size, big_size};
+
+    Vector2 small_size_vec = {small_size, small_size};
+
+    sprintf(number_text, "%d", number_to_display);
+
+    //drawing and counting part
+    button(big_button_position, big_size_vec, button_color, number_text, false);
+
+    count += -button(small_button_position, small_size_vec, button_color, "-", true); //minus the return
+        
+    push_coord_right(&small_button_position, small_size + BLANKSPACESIZE/2);
+
+    count += button(small_button_position, small_size_vec, button_color, "+", true);
+
+    push_coord_right(initial_button_pos, big_size + BLANKSPACESIZE);
+
+    return count;
+}
+
+void wont_be_negative(int* number) {
+    if ((*number) < 0)
+        *number = 0;
+}
+
+void draw_centralized_text(Vector2 button_position, Vector2 button_size, float font_size, char* text, Color text_color) {
+
+    Vector2 text_size = MeasureTextEx(GetFontDefault(), text, font_size, 2);
+
+    button_position.x += button_size.x/2 - text_size.x/2.0;
+    button_position.y += button_size.y/2 - text_size.y/2.0;
+
+    DrawTextEx(GetFontDefault(), text, button_position, font_size, 2, text_color);
+
 }
