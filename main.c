@@ -47,6 +47,10 @@ int main() {
 
     float small_button_size = (big_button_size - BLANKSPACESIZE/2)/2;
 
+    float timer_size_x = SCREENWIDTH - 2*BLANKSPACESIZE;
+    float timer_size_y = SCREENHEIGHT - ((3/2)*BLANKSPACESIZE + big_button_size + small_button_size);
+    Vector2 timer_size_vec = {timer_size_x, timer_size_y};
+
     Vector2 button_drawing_pos;
 
     //target fps = 60!!!
@@ -67,6 +71,9 @@ int main() {
         BeginDrawing();
 
         ClearBackground(DARKGRAY);
+
+        button(button_drawing_pos, timer_size_vec, GRAY, //esqueci de dar o git pull entao falta o formatador)
+        button_drawing_pos.y += timer_size_y;
 
         user_test.wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, RED, user_test.wrong_answers);
         wont_be_negative(&user_test.wrong_answers);
