@@ -31,6 +31,7 @@ void wont_be_negative(int* number);
 
 void draw_centralized_text(Vector2 button_position, Vector2 button_size, float font_size, char* text, Color text_color); //meant to use inside a button
 
+void format_timer(int time_seconds, char* formatted_timer);
 //end of functions signatures
 
 int main() {
@@ -39,7 +40,7 @@ int main() {
     SUBJECT* user_subjects;
     int user_subjects_counter = 0;
 
-    //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use 
+    //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use
     user_subjects_rw('r', &user_subjects_counter, &user_subjects);
 
     //buttons drawing control (for the counter)
@@ -62,7 +63,7 @@ int main() {
 
     SUBJECT user_test = {0};
 
-
+;
     while (!WindowShouldClose()) {
 
         //button position reset
@@ -84,12 +85,18 @@ int main() {
         user_test.right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, GREEN, user_test.right_answers);
         wont_be_negative(&user_test.right_answers);
 
+        char string_legal[8 + 1];
+
+        format_timer(3771, string_legal);
+
+        DrawText(string_legal, SCREENWIDTH/2, SCREENHEIGHT/2, 1000, GRAY);
+
         EndDrawing();
     }
 
     user_subjects_rw('w', &user_subjects_counter, &user_subjects);
 
-    //window closing 
+    //window closing
     CloseWindow();
 
     //frees the subjects vector
@@ -110,12 +117,12 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
                 SUBJECT read = {0};
 
                 while(!feof(fileptr)) {
-                    
+
                     //allocates memory at runtime to store the user subjects
                     if (fread(&read, sizeof(read), 1, fileptr) == 1) {
                         if (*subjects == 0)
                             *subject_vector = malloc(sizeof(SUBJECT));
-                        else 
+                        else
                             *subject_vector = (SUBJECT *)realloc(*subject_vector, (*subjects)*sizeof(SUBJECT));
 
                         (*subject_vector)[*subjects] = read;
@@ -132,7 +139,7 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
 
         case 'w':
             if ((fileptr = fopen("user_subjects.bin", "wb")) != NULL) {
-                
+
                 if (fwrite(*subject_vector, sizeof(SUBJECT), *subjects, fileptr) != *subjects)
                     printf("Error in file writing!\n");
 
@@ -147,7 +154,7 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
 
 int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable) {
 // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
-// using the returned value. 
+// using the returned value.
 
     float font_size = SCREENHEIGHT/5.0;
 
@@ -169,9 +176,9 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
             click = 1;
     }
 
-    //button lines drawing 
+    //button lines drawing
     DrawRectangleRounded(button, STANDARDBUTTONCURVE, 20, BLACK);
-    
+
     //float delta = button.width/100.0;
     float delta = SCREENWIDTH/BUTTONLINETHICKNESSDIV;
 
@@ -209,7 +216,7 @@ int question_button_kit(Vector2* initial_button_pos, float big_size, float small
 
     Vector2 big_button_position = *initial_button_pos;
 
-    Vector2 small_button_position = {initial_button_pos->x, 
+    Vector2 small_button_position = {initial_button_pos->x,
     initial_button_pos->y + big_size + BLANKSPACESIZE/2};
 
     Vector2 big_size_vec = {big_size, big_size};
@@ -222,7 +229,7 @@ int question_button_kit(Vector2* initial_button_pos, float big_size, float small
     button(big_button_position, big_size_vec, button_color, number_text, false);
 
     count += -button(small_button_position, small_size_vec, button_color, "-", true); //minus the return
-        
+
     push_coord_right(&small_button_position, small_size + BLANKSPACESIZE/2);
 
     count += button(small_button_position, small_size_vec, button_color, "+", true);
@@ -245,5 +252,39 @@ void draw_centralized_text(Vector2 button_position, Vector2 button_size, float f
     button_position.y += button_size.y/2 - text_size.y/2.0;
 
     DrawTextEx(GetFontDefault(), text, button_position, font_size, 2, text_color);
+
+}
+
+void format_timer(int time_seconds, char* formatted_timer) {
+    int time_minutes = 0;
+    int time_hours = 0;
+
+    char string_seconds[3] = {0};
+    char string_minutes[3] = {0};
+    char string_hours[3] = {0};
+
+
+    time_minutes = time_seconds/60;
+    time_seconds = time_seconds%60;
+
+    time_hours = time_minutes/60;
+    time_minutes = time_minutes%60;
+
+    if (time_seconds >= 10)
+        sprintf(string_seconds, "%d", time_seconds);
+    else
+        sprintf(string_seconds, "0%d", time_seconds);
+
+    if (time_minutes >= 10)
+        sprintf(string_minutes, "%d", time_minutes);
+    else
+        sprintf(string_minutes, "0%d", time_minutes);
+
+    if (time_hours >= 10)
+        sprintf(string_hours, "%d", time_hours);
+    else
+        sprintf(string_hours, "0%d", time_hours);
+
+    sprintf(formatted_timer, "%s:%s:%s", string_hours, string_minutes, string_seconds);
 
 }
