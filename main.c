@@ -15,6 +15,7 @@ typedef struct {
     int medium_answers;
     int wrong_answers;
     int time_spent; //in seconds
+    bool selected;
 
 } SUBJECT;
 
@@ -32,6 +33,8 @@ void wont_be_negative(int* number);
 void draw_centralized_text(Vector2 button_position, Vector2 button_size, float font_size, char* text, Color text_color); //meant to use inside a button
 
 void format_timer(int time_seconds, char* formatted_timer);
+
+int subject_selected(SUBJECT *subject_array, int subject_counter);
 //end of functions signatures
 
 int main() {
@@ -39,6 +42,7 @@ int main() {
     //subjects vector variables
     SUBJECT* user_subjects;
     int user_subjects_counter = 0;
+    int subject_index = -1;
 
     //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use
     user_subjects_rw('r', &user_subjects_counter, &user_subjects);
@@ -49,8 +53,12 @@ int main() {
     float small_button_size = (big_button_size - BLANKSPACESIZE/2)/2;
 
     float timer_size_x = SCREENWIDTH - 2*BLANKSPACESIZE;
-    float timer_size_y = SCREENHEIGHT - ((3/2)*BLANKSPACESIZE + big_button_size + small_button_size);
+    float timer_size_y = SCREENHEIGHT - ((5/2)*BLANKSPACESIZE + big_button_size + small_button_size);
     Vector2 timer_size_vec = {timer_size_x, timer_size_y};
+
+    char timer_string[12 + 1] = {0};
+
+    Vector2 close_subject_size_vec = {timer_size_y, timer_size_y};
 
     Vector2 button_drawing_pos;
 
@@ -60,38 +68,44 @@ int main() {
     //window initializing
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Question counter");
 
+    user_subjects[0].selected = true;
 
-    SUBJECT user_test = {0};
-
-;
     while (!WindowShouldClose()) {
-
-        //button position reset
-        button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE};
 
         BeginDrawing();
 
         ClearBackground(DARKGRAY);
 
-        button(button_drawing_pos, timer_size_vec, GRAY, //esqueci de dar o git pull entao falta o formatador)
-        button_drawing_pos.y += timer_size_y;
+        if ((subject_index = subject_selected(user_subjects, user_subjects_counter)) > -1) {
 
-        user_test.wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, RED, user_test.wrong_answers);
-        wont_be_negative(&user_test.wrong_answers);
+            //button position reset
+            button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE/2};
 
-        user_test.medium_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, YELLOW, user_test.medium_answers);
-        wont_be_negative(&user_test.medium_answers);
+            format_timer(40000, timer_string);
 
-        user_test.right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, GREEN, user_test.right_answers);
-        wont_be_negative(&user_test.right_answers);
+            button(button_drawing_pos, timer_size_vec, GRAY, timer_string, false);
 
-        char string_legal[8 + 1];
+            if (button(button_drawing_pos, close_subject_size_vec, GRAY, "x", true)) {
+                user_subjects[subject_index].selected = false;
+            }
 
-        format_timer(3771, string_legal);
+            button_drawing_pos.y += timer_size_y + BLANKSPACESIZE/2;
 
-        DrawText(string_legal, SCREENWIDTH/2, SCREENHEIGHT/2, 1000, GRAY);
+            user_subjects[subject_index].wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, RED, user_subjects[subject_index].wrong_answers);
+            wont_be_negative(&user_subjects[subject_index].wrong_answers);
+
+            user_subjects[subject_index].medium_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, YELLOW, user_subjects[subject_index].medium_answers);
+            wont_be_negative(&user_subjects[subject_index].medium_answers);
+
+            user_subjects[subject_index].right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, GREEN, user_subjects[subject_index].right_answers);
+            wont_be_negative(&user_subjects[subject_index].right_answers);
+        
+        }
 
         EndDrawing();
+
+        printf("%d\n", subject_index);
+
     }
 
     user_subjects_rw('w', &user_subjects_counter, &user_subjects);
@@ -100,9 +114,10 @@ int main() {
     CloseWindow();
 
     //frees the subjects vector
-    if (user_subjects_counter > 0)
+    if (user_subjects_counter > 0) {
         free(user_subjects);
-
+    }
+        
     return 0;
 
 }
@@ -156,7 +171,7 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
 // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
 // using the returned value.
 
-    float font_size = SCREENHEIGHT/5.0;
+    float font_size = size.y/2.0;
 
     bool hovering = false;
     int click = 0;
@@ -287,4 +302,16 @@ void format_timer(int time_seconds, char* formatted_timer) {
 
     sprintf(formatted_timer, "%s:%s:%s", string_hours, string_minutes, string_seconds);
 
+}
+
+int subject_selected(SUBJECT *subject_array, int subject_counter) {
+    int selected = -1;
+
+    for (int i = 0; i < subject_counter; i++) {
+        if (subject_array[i].selected) {
+            selected = i;
+        }
+    }
+
+    return selected;
 }
