@@ -1,9 +1,11 @@
 #include "raylib.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define SCREENWIDTH 1200.0
 #define SCREENHEIGHT 675.0
+#define STANDARDFONTSIZE 20.0
 #define BLANKSPACESIZE 30.0
 #define STANDARDBUTTONCURVE 0.3
 #define BUTTONLINETHICKNESSDIV 400.0
@@ -14,6 +16,7 @@
 
 typedef struct {
 
+    char* name;
     int right_answers;
     int medium_answers;
     int wrong_answers;
@@ -29,6 +32,8 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
 
 void push_coord_right(Vector2* coordinates, float distance);
 
+void push_coord_left(Vector2* coordinates, float distance);
+
 int question_button_kit(Vector2* initial_button_pos, float big_size, float small_size, Color button_color, int number_to_display);
 
 void wont_be_negative(int* number);
@@ -38,6 +43,10 @@ void draw_centralized_text(Vector2 button_position, Vector2 button_size, float f
 void format_timer(int time_seconds, char* formatted_timer);
 
 int subject_selected(SUBJECT *subject_array, int subject_counter);
+
+void questions_done_display(Vector2 initial_position, Vector2 size, float big_size, SUBJECT subject, Color button_color);
+
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color);
 //end of functions signatures
 
 int main() {
@@ -50,7 +59,8 @@ int main() {
     //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use
     user_subjects_rw('r', &user_subjects_counter, &user_subjects);
 
-    //buttons drawing control (for the counter)
+
+    //buttons drawing control (for a specific subject)
     float big_button_size = (SCREENWIDTH - 4*BLANKSPACESIZE)/3;
 
     float small_button_size = (big_button_size - BLANKSPACESIZE/2)/2;
@@ -63,7 +73,11 @@ int main() {
 
     Vector2 close_subject_size_vec = {timer_size_y, timer_size_y};
 
+    Vector2 questions_done_size_vec = close_subject_size_vec;
+    questions_done_size_vec.x *= 4;
+
     Vector2 button_drawing_pos;
+
 
     //target fps = 60!!!
     SetTargetFPS(60);
@@ -71,19 +85,16 @@ int main() {
     //window initializing
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Question counter");
 
-    //DELETE IT WHEN FINISH TESTING  *MODIFYLATER*
-    user_subjects[0].selected = true;
-
     while (!WindowShouldClose()) {
 
         BeginDrawing();
 
         ClearBackground(DARKGRAY);
 
-        if ((subject_index = subject_selected(user_subjects, user_subjects_counter)) > -1) {
+        //button position reset
+        button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE/2};
 
-            //button position reset
-            button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE/2};
+        if ((subject_index = subject_selected(user_subjects, user_subjects_counter)) > -1) {
 
             //HERE SHOULD BE THE REAL TIMER *MODIFYLATER*
             format_timer(40000, timer_string);
@@ -93,6 +104,8 @@ int main() {
             if (button(button_drawing_pos, close_subject_size_vec, GRAY, "x", true)) {
                 user_subjects[subject_index].selected = false;
             }
+
+            questions_done_display(button_drawing_pos, questions_done_size_vec, big_button_size, user_subjects[subject_index], GRAY);
 
             button_drawing_pos.y += timer_size_y + BLANKSPACESIZE/2;
 
@@ -105,6 +118,26 @@ int main() {
             user_subjects[subject_index].right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, FULLGREEN, user_subjects[subject_index].right_answers);
             wont_be_negative(&user_subjects[subject_index].right_answers);
 
+        } else {
+            ///TEST TEST TEST
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+
+
+
+            ///TEST TEST TEST
         }
 
         EndDrawing();
@@ -167,12 +200,11 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
 
             break;
     }
-
 }
 
 int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable) {
-// the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
-// using the returned value.
+    // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
+    // using the returned value.
 
     float font_size = size.y/2.0;
 
@@ -220,9 +252,11 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
 }
 
 void push_coord_right(Vector2* coordinates, float distance) {
-
     coordinates->x += distance;
+}
 
+void push_coord_left(Vector2* coordinates, float distance) {
+    coordinates->x += distance;
 }
 
 int question_button_kit(Vector2* initial_button_pos, float big_size, float small_size, Color button_color, int number_to_display) {
@@ -270,7 +304,6 @@ void draw_centralized_text(Vector2 button_position, Vector2 button_size, float f
     button_position.y += button_size.y/2 - text_size.y/2.0;
 
     DrawTextEx(GetFontDefault(), text, button_position, font_size, 2, text_color);
-
 }
 
 void format_timer(int time_seconds, char* formatted_timer) {
@@ -304,7 +337,6 @@ void format_timer(int time_seconds, char* formatted_timer) {
         sprintf(string_hours, "0%d", time_hours);
 
     sprintf(formatted_timer, "%s:%s:%s", string_hours, string_minutes, string_seconds);
-
 }
 
 int subject_selected(SUBJECT *subject_array, int subject_counter) {
@@ -318,3 +350,39 @@ int subject_selected(SUBJECT *subject_array, int subject_counter) {
 
     return selected;
 }
+
+void questions_done_display(Vector2 initial_position, Vector2 size, float big_size, SUBJECT subject, Color button_color) {
+    //must be used right after the close button logic!!!
+    Vector2 drawing_pos = initial_position;
+    drawing_pos.x += 2*(big_size + BLANKSPACESIZE) + (big_size - size.x);
+
+    char string_to_display[30] = {0};
+
+    sprintf(string_to_display, "Questões: %d", subject.wrong_answers + subject.medium_answers + subject.right_answers);
+
+    button(drawing_pos, size, button_color, string_to_display, false);
+}
+
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color) {
+    float text_length = MeasureText(to_be_shown.name, font_size);
+    int click = 0;
+    Vector2 button_size = {2*text_length, 2*font_size};
+
+    if (initial_position->x + button_size.x + BLANKSPACESIZE > SCREENWIDTH) {
+        initial_position->x = BLANKSPACESIZE;
+        initial_position->y += button_size.y + BLANKSPACESIZE/2;
+    }
+
+    click = button(*initial_position, button_size, color, to_be_shown.name, true);
+
+    initial_position->x += button_size.x + BLANKSPACESIZE;
+
+    return click;
+}
+
+
+//MAKE A HOVERING WHEN THE USER PASS THE MOUSE OVER A SUBJECT IT SHOWS THE ANSWERS
+//show subject -> show all the subjects
+//prompt a message -> add subject
+//remove subject(toggle) if you click a subject it will be deleted
+//reorder the subject array and subtract 1 from the subject counter
