@@ -8,6 +8,9 @@
 #define STANDARDBUTTONCURVE 0.3
 #define BUTTONLINETHICKNESSDIV 400.0
 #define SHADOWCOLOR (Color){40, 40, 40, 180}
+#define FULLRED (Color){255, 0, 0, 255}
+#define FULLYELLOW (Color){255, 255, 0, 255}
+#define FULLGREEN (Color){0, 255, 0, 255}
 
 typedef struct {
 
@@ -53,7 +56,7 @@ int main() {
     float small_button_size = (big_button_size - BLANKSPACESIZE/2)/2;
 
     float timer_size_x = SCREENWIDTH - 2*BLANKSPACESIZE;
-    float timer_size_y = SCREENHEIGHT - ((5/2)*BLANKSPACESIZE + big_button_size + small_button_size);
+    float timer_size_y = SCREENHEIGHT - ((5.0/2)*BLANKSPACESIZE + big_button_size + small_button_size);
     Vector2 timer_size_vec = {timer_size_x, timer_size_y};
 
     char timer_string[12 + 1] = {0};
@@ -68,6 +71,7 @@ int main() {
     //window initializing
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Question counter");
 
+    //DELETE IT WHEN FINISH TESTING  *MODIFYLATER*
     user_subjects[0].selected = true;
 
     while (!WindowShouldClose()) {
@@ -81,6 +85,7 @@ int main() {
             //button position reset
             button_drawing_pos = (Vector2){BLANKSPACESIZE, BLANKSPACESIZE/2};
 
+            //HERE SHOULD BE THE REAL TIMER *MODIFYLATER*
             format_timer(40000, timer_string);
 
             button(button_drawing_pos, timer_size_vec, GRAY, timer_string, false);
@@ -91,20 +96,18 @@ int main() {
 
             button_drawing_pos.y += timer_size_y + BLANKSPACESIZE/2;
 
-            user_subjects[subject_index].wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, RED, user_subjects[subject_index].wrong_answers);
+            user_subjects[subject_index].wrong_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, FULLRED, user_subjects[subject_index].wrong_answers);
             wont_be_negative(&user_subjects[subject_index].wrong_answers);
 
-            user_subjects[subject_index].medium_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, YELLOW, user_subjects[subject_index].medium_answers);
+            user_subjects[subject_index].medium_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, FULLYELLOW, user_subjects[subject_index].medium_answers);
             wont_be_negative(&user_subjects[subject_index].medium_answers);
 
-            user_subjects[subject_index].right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, GREEN, user_subjects[subject_index].right_answers);
+            user_subjects[subject_index].right_answers += question_button_kit(&button_drawing_pos, big_button_size, small_button_size, FULLGREEN, user_subjects[subject_index].right_answers);
             wont_be_negative(&user_subjects[subject_index].right_answers);
-        
+
         }
 
         EndDrawing();
-
-        printf("%d\n", subject_index);
 
     }
 
@@ -117,7 +120,7 @@ int main() {
     if (user_subjects_counter > 0) {
         free(user_subjects);
     }
-        
+
     return 0;
 
 }
