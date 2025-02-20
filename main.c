@@ -10,9 +10,13 @@
 #define STANDARDBUTTONCURVE 0.3
 #define BUTTONLINETHICKNESSDIV 400.0
 #define SHADOWCOLOR (Color){40, 40, 40, 180}
+#define SOFTRED (Color){255, 105, 97, 255}
 #define FULLRED (Color){255, 0, 0, 255}
+#define SOFTYELLOW (Color){253, 253, 150, 255}
 #define FULLYELLOW (Color){255, 255, 0, 255}
+#define SOFTGREEN (Color){119, 221, 119, 255}
 #define FULLGREEN (Color){0, 255, 0, 255}
+
 
 typedef struct {
 
@@ -46,7 +50,7 @@ int subject_selected(SUBJECT *subject_array, int subject_counter);
 
 void questions_done_display(Vector2 initial_position, Vector2 size, float big_size, SUBJECT subject, Color button_color);
 
-int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color);
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color, float screen_limit);
 //end of functions signatures
 
 int main() {
@@ -78,6 +82,8 @@ int main() {
 
     Vector2 button_drawing_pos;
 
+    //this is the size of the button space in the main menu;
+    float button_reserved_space_size = SCREENWIDTH/4;
 
     //target fps = 60!!!
     SetTargetFPS(60);
@@ -120,20 +126,17 @@ int main() {
 
         } else {
             ///TEST TEST TEST
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY);
+
+
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
+            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
 
 
 
@@ -363,25 +366,51 @@ void questions_done_display(Vector2 initial_position, Vector2 size, float big_si
     button(drawing_pos, size, button_color, string_to_display, false);
 }
 
-int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color) {
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color, float screen_limit) {
     float text_length = MeasureText(to_be_shown.name, font_size);
     int click = 0;
     Vector2 button_size = {2*text_length, 2*font_size};
+    Vector2 drawing_pos = *initial_position;
 
-    if (initial_position->x + button_size.x + BLANKSPACESIZE > SCREENWIDTH) {
-        initial_position->x = BLANKSPACESIZE;
-        initial_position->y += button_size.y + BLANKSPACESIZE/2;
+    char wrong_string[12], medium_string[12], right_string[12];
+
+    sprintf(wrong_string, "%d", to_be_shown.wrong_answers);
+    sprintf(medium_string, "%d", to_be_shown.medium_answers);
+    sprintf(right_string, "%d", to_be_shown.right_answers);
+
+    //makes sure the button fits the screen
+    if (drawing_pos.x + button_size.x + BLANKSPACESIZE > SCREENWIDTH - screen_limit) {
+        drawing_pos.x = BLANKSPACESIZE;
+        drawing_pos.y += button_size.y + BLANKSPACESIZE/2;
     }
 
-    click = button(*initial_position, button_size, color, to_be_shown.name, true);
+    Rectangle button_rect = {
+        drawing_pos.x,
+        drawing_pos.y,
+        button_size.x,
+        button_size.y
+    };
 
+    click = button(drawing_pos, button_size, color, to_be_shown.name, true);
+
+    *initial_position = drawing_pos;
     initial_position->x += button_size.x + BLANKSPACESIZE;
+
+    button_size.x /= 3;
+
+    //hovers a little diferent
+    if (CheckCollisionPointRec(GetMousePosition(), button_rect)) {
+        button(drawing_pos, button_size, SOFTRED, wrong_string, false);
+        push_coord_right(&drawing_pos, button_size.x);
+        button(drawing_pos, button_size, SOFTYELLOW, medium_string, false);
+        push_coord_right(&drawing_pos, button_size.x);
+        button(drawing_pos, button_size, SOFTGREEN, right_string, false);
+    }
 
     return click;
 }
 
 
-//MAKE A HOVERING WHEN THE USER PASS THE MOUSE OVER A SUBJECT IT SHOWS THE ANSWERS
 //show subject -> show all the subjects
 //prompt a message -> add subject
 //remove subject(toggle) if you click a subject it will be deleted
