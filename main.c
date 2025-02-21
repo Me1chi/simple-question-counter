@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define SCREENWIDTH 1200.0
 #define SCREENHEIGHT 675.0
@@ -20,7 +21,7 @@
 
 typedef struct {
 
-    char* name;
+    char name[50];
     int right_answers;
     int medium_answers;
     int wrong_answers;
@@ -50,7 +51,16 @@ int subject_selected(SUBJECT *subject_array, int subject_counter);
 
 void questions_done_display(Vector2 initial_position, Vector2 size, float big_size, SUBJECT subject, Color button_color);
 
-int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color, float screen_limit);
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, Color color, float screen_limit);
+
+void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int* array_size, Color color, float screen_limit, bool delete_on);
+
+void delete_and_reorganize_subject(SUBJECT **subject_array, int *array_size, int position_to_delete);
+
+void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, Color popup_color);
+
+bool input_array_writer(char *array, int *position, Vector2 button_position, float button_size, Color color);
+
 //end of functions signatures
 
 int main() {
@@ -84,6 +94,9 @@ int main() {
 
     //this is the size of the button space in the main menu;
     float button_reserved_space_size = SCREENWIDTH/4;
+
+    //main menu font size
+    float menu_font_size = SCREENHEIGHT/50;
 
     //target fps = 60!!!
     SetTargetFPS(60);
@@ -128,16 +141,7 @@ int main() {
             ///TEST TEST TEST
 
 
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-            show_subject(&button_drawing_pos, SCREENWIDTH/50, (SUBJECT){"blue subject", 60, 60, 60, 120, false}, false, GRAY, button_reserved_space_size);
-
+            show_all_subjects(button_drawing_pos, menu_font_size, &user_subjects, &user_subjects_counter, GRAY, button_reserved_space_size, false);
 
 
             ///TEST TEST TEST
@@ -366,7 +370,7 @@ void questions_done_display(Vector2 initial_position, Vector2 size, float big_si
     button(drawing_pos, size, button_color, string_to_display, false);
 }
 
-int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, bool delete_on, Color color, float screen_limit) {
+int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, Color color, float screen_limit) {
     float text_length = MeasureText(to_be_shown.name, font_size);
     int click = 0;
     Vector2 button_size = {2*text_length, 2*font_size};
@@ -410,8 +414,116 @@ int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown
     return click;
 }
 
+void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int* array_size, Color color, float screen_limit, bool delete_on) {
 
-//show subject -> show all the subjects
-//prompt a message -> add subject
+    int index_to_use = -1;
+
+    for (int i = 0; i < (*array_size); i++) {
+        if (show_subject(&initial_position, font_size, (*subject_array)[i], color, screen_limit) == 1) {
+            index_to_use = i;
+        }
+    }
+
+    if (initial_position.x + MeasureText("Adicionar", font_size) + BLANKSPACESIZE > SCREENWIDTH - screen_limit) {
+        initial_position.x = BLANKSPACESIZE;
+        initial_position.y += font_size*2 + BLANKSPACESIZE/2;
+    }
+
+    add_a_subject(initial_position, font_size, subject_array, array_size, color);
+
+    if (index_to_use > -1) {
+        if(delete_on) {
+            delete_and_reorganize_subject(subject_array, array_size, index_to_use);
+        } else {
+            (*subject_array)[index_to_use].selected = true;
+        }
+    }
+}
+
+void delete_and_reorganize_subject(SUBJECT **subject_array, int *array_size, int position_to_delete) {
+    for (int i = position_to_delete; i < (*array_size) - 1; i++) {
+        (*subject_array)[i] = (*subject_array)[i + 1];
+    }
+
+    if ((*array_size)-- < 1) {
+        free(*subject_array);
+    } else {
+        *subject_array = realloc(*subject_array, *array_size);
+    }
+}
+
+//show subject DONE
+//show all the subjects DONE
+//prompt a message
+//add subject
 //remove subject(toggle) if you click a subject it will be deleted
 //reorder the subject array and subtract 1 from the subject counter
+
+
+
+void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, Color popup_color) {
+
+    char input_buffer[50] = {0};
+    bool name_confirmed = false;
+    int letter_position = 0;
+
+    SUBJECT new_subject = {
+        "",
+        0,
+        0,
+        0,
+        0,
+        false
+    };
+
+    Vector2 subject_size = {2*font_size, 2*font_size};
+
+    while (!name_confirmed) {
+
+        if (subject_size.x < 2*MeasureText(input_buffer, font_size)) {
+            subject_size.x = 2*MeasureText(input_buffer, font_size);
+        }
+
+        button(initial_position, subject_size, popup_color, input_buffer, false);
+
+        if (input_array_writer(input_buffer, &letter_position, (Vector2){initial_position.x + subject_size.x, initial_position.y}, subject_size.y, popup_color)) {
+            name_confirmed = true;
+        }
+    }
+
+    strcpy(new_subject.name, input_buffer);
+
+    if (*subject_counter > 0) {
+        (*subject_array) = realloc(*subject_array, ((*subject_counter) + 1)*sizeof(SUBJECT));
+    } else {
+        (*subject_array) = malloc(sizeof(SUBJECT));
+    }
+
+    (*subject_counter)++;
+}
+
+bool input_array_writer(char *array, int *position, Vector2 button_position, float button_size, Color color) {
+    char letter_input;
+
+    Vector2 button_size_vec = {button_size, button_size};
+
+    letter_input = GetKeyPressed();
+
+    if (letter_input >= 32 && letter_input <= 125 && *position < 50 && letter_input != KEY_EQUAL) {
+
+        array[*position] = letter_input;
+
+        array[*position+1] = '\0';
+
+        (*position)++;
+    }
+
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        if (*position != 0)
+            (*position)--;
+        array[*position] = '\0';
+    }
+
+
+    return button(button_position, button_size_vec, color, "Adicionar", true);
+}
