@@ -6,10 +6,13 @@
 
 #define SCREENWIDTH 1200.0
 #define SCREENHEIGHT 675.0
+
 #define STANDARDFONTSIZE 20.0
 #define BLANKSPACESIZE 30.0
 #define STANDARDBUTTONCURVE 0.3
 #define BUTTONLINETHICKNESSDIV 400.0
+#define BUTTONLENGTHOVERFONT 1.608
+
 #define SHADOWCOLOR (Color){40, 40, 40, 180}
 #define SOFTRED (Color){255, 105, 97, 255}
 #define FULLRED (Color){255, 0, 0, 255}
@@ -31,7 +34,7 @@ typedef struct {
 } SUBJECT;
 
 //functions signatures (beggining)
-void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector);
+void user_subjects_rw(char mode, int *subjects, int *array_size, SUBJECT** subject_vector);
 
 int button(Vector2 position, Vector2 size, Color button_color, char* text, bool clickable);
 
@@ -53,11 +56,11 @@ void questions_done_display(Vector2 initial_position, Vector2 size, float big_si
 
 int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown, Color color, float screen_limit);
 
-void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int* array_size, Color color, float screen_limit, bool delete_on);
+void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, int* array_size, Color color, float screen_limit, bool delete_on);
 
-void delete_and_reorganize_subject(SUBJECT **subject_array, int *array_size, int position_to_delete);
+void delete_and_reorganize_subject(SUBJECT **subject_array, int *subject_counter, int *array_size, int position_to_delete);
 
-void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, Color popup_color);
+void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, int *array_size, Color popup_color);
 
 bool input_array_writer(char *array, int *position, Vector2 button_position, float button_size, Color color);
 
@@ -69,9 +72,10 @@ int main() {
     SUBJECT* user_subjects;
     int user_subjects_counter = 0;
     int subject_index = -1;
+    int subject_array_size = 0;
 
     //reads the stored user subjects array. If it doesn't exist, it will be created in the 1st use
-    user_subjects_rw('r', &user_subjects_counter, &user_subjects);
+    user_subjects_rw('r', &user_subjects_counter, &subject_array_size, &user_subjects);
 
 
     //buttons drawing control (for a specific subject)
@@ -152,15 +156,15 @@ int main() {
                 delete_on = (button(delete_button_pos, delete_button_size, GRAY, delete_string, true) == 1 ? true : false);
             }
 
-            show_all_subjects(button_drawing_pos, menu_font_size, &user_subjects, &user_subjects_counter, GRAY, button_reserved_space_size, delete_on);
+            show_all_subjects(button_drawing_pos, menu_font_size, &user_subjects, &user_subjects_counter, &subject_array_size, GRAY, button_reserved_space_size, delete_on);
 
         }
-
-        user_subjects_rw('w', &user_subjects_counter, &user_subjects);
 
         EndDrawing();
 
     }
+
+    user_subjects_rw('w', &user_subjects_counter, &subject_array_size, &user_subjects);
 
     //window closing
     CloseWindow();
@@ -174,7 +178,7 @@ int main() {
 
 }
 
-void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
+void user_subjects_rw(char mode, int *subjects, int *array_size, SUBJECT** subject_vector) {
 
     FILE *fileptr;
 
@@ -183,19 +187,20 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
             if ((fileptr = fopen("user_subjects.bin", "rb")) != NULL) {
                 SUBJECT read = {0};
 
-                while(!feof(fileptr)) {
+                //allocates memory at runtime to store the user subjects
+                while(fread(&read, sizeof(read), 1, fileptr) == 1) {
 
-                    //allocates memory at runtime to store the user subjects
-                    if (fread(&read, sizeof(read), 1, fileptr) == 1) {
-                        if (*subjects == 0)
-                            *subject_vector = malloc(sizeof(SUBJECT));
-                        else
-                            *subject_vector = (SUBJECT *)realloc(*subject_vector, (*subjects)*sizeof(SUBJECT));
-
-                        (*subject_vector)[*subjects] = read;
-
-                        (*subjects)++;
+                    if (*subjects == 0) {
+                        *array_size = 2;
+                        *subject_vector = malloc((*array_size)*sizeof(SUBJECT));
+                    } else if (*subjects >= *array_size) {
+                        (*array_size) *= 2;
+                        *subject_vector = (SUBJECT *)realloc(*subject_vector, (*array_size)*sizeof(SUBJECT));
                     }
+
+                    (*subject_vector)[*subjects] = read;
+
+                    (*subjects)++;
 
                 }
 
@@ -208,10 +213,10 @@ void user_subjects_rw(char mode, int *subjects, SUBJECT** subject_vector) {
             if ((fileptr = fopen("user_subjects.bin", "wb")) != NULL) {
 
                 if (fwrite(*subject_vector, sizeof(SUBJECT), *subjects, fileptr) != *subjects)
-                    printf("Error in file writing!\n");
+                    printf("Error in file opening -> writing!\n");
 
             } else
-                printf("Error in file writing!\n");
+                printf("Error in file writing -> writing!\n");
 
 
             break;
@@ -222,7 +227,7 @@ int button(Vector2 position, Vector2 size, Color button_color, char* text, bool 
     // the logic action here, i.e, the changing in the value of a subject, will be done in the main loop
     // using the returned value.
 
-    float font_size = size.y/2.0;
+    float font_size = size.y/BUTTONLENGTHOVERFONT;
 
     bool hovering = false;
     int click = 0;
@@ -316,8 +321,8 @@ void draw_centralized_text(Vector2 button_position, Vector2 button_size, float f
 
     Vector2 text_size = MeasureTextEx(GetFontDefault(), text, font_size, 2);
 
-    button_position.x += button_size.x/2 - text_size.x/2.0;
-    button_position.y += button_size.y/2 - text_size.y/2.0;
+    button_position.x += button_size.x/2.0 - text_size.x/2.0;
+    button_position.y += button_size.y/2.0 - text_size.y/2.0;
 
     DrawTextEx(GetFontDefault(), text, button_position, font_size, 2, text_color);
 }
@@ -423,11 +428,11 @@ int show_subject(Vector2* initial_position, float font_size, SUBJECT to_be_shown
     return click;
 }
 
-void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int* array_size, Color color, float screen_limit, bool delete_on) {
+void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, int* array_size, Color color, float screen_limit, bool delete_on) {
 
     int index_to_use = -1;
 
-    for (int i = 0; i < (*array_size); i++) {
+    for (int i = 0; i < (*subject_counter); i++) {
         if (show_subject(&initial_position, font_size, (*subject_array)[i], color, screen_limit) == 1) {
             index_to_use = i;
         }
@@ -439,27 +444,28 @@ void show_all_subjects(Vector2 initial_position, float font_size, SUBJECT **subj
     }
 
     if (button(initial_position, (Vector2){2*MeasureText("Adicionar", font_size), 2*font_size}, GRAY, "Adicionar", true))
-        add_a_subject(initial_position, font_size, subject_array, array_size, color);
+        add_a_subject(initial_position, font_size, subject_array, subject_counter, array_size, color);
 
     if (index_to_use > -1) {
         if(delete_on) {
-            delete_and_reorganize_subject(subject_array, array_size, index_to_use);
+            delete_and_reorganize_subject(subject_array, subject_counter, array_size, index_to_use);
         } else {
             (*subject_array)[index_to_use].selected = true;
         }
     }
 }
 
-void delete_and_reorganize_subject(SUBJECT **subject_array, int *array_size, int position_to_delete) {
-    for (int i = position_to_delete; i < (*array_size); i++) {
-        if (i < *array_size - 1)
+void delete_and_reorganize_subject(SUBJECT **subject_array, int *subject_counter, int *array_size, int position_to_delete) {
+    for (int i = position_to_delete; i < (*subject_counter); i++) {
+        if (i < *subject_counter - 1)
             (*subject_array)[i] = (*subject_array)[i + 1];
     }
 
-    if ((*array_size)-- < 1) {
+    if ((*subject_counter)-- < 1) {
         free(*subject_array);
-    } else {
-        *subject_array = realloc(*subject_array, *array_size);
+    } else if (*subject_counter < *array_size/2) {
+        *array_size /= 2;
+        *subject_array = realloc(*subject_array, (*array_size)*sizeof(SUBJECT));
     }
 }
 
@@ -472,7 +478,7 @@ void delete_and_reorganize_subject(SUBJECT **subject_array, int *array_size, int
 
 
 
-void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, Color popup_color) {
+void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_array, int *subject_counter, int *array_size, Color popup_color) {
 
     char input_buffer[200] = {0};
     bool name_confirmed = false;
@@ -512,10 +518,12 @@ void add_a_subject(Vector2 initial_position, float font_size, SUBJECT **subject_
 
     strcpy(new_subject.name, input_buffer);
 
-    if (*subject_counter > 0) {
-        (*subject_array) = realloc(*subject_array, ((*subject_counter) + 1)*sizeof(SUBJECT));
-    } else {
-        (*subject_array) = malloc(sizeof(SUBJECT));
+    if (*subject_counter > 0 && (*array_size) <= (*subject_counter) + 1) {
+        (*array_size) *= 2;
+        (*subject_array) = realloc(*subject_array, (*array_size)*sizeof(SUBJECT));
+    } else if (*subject_counter <= 0) {
+        (*subject_array) = malloc(2*sizeof(SUBJECT));
+        (*array_size) = 2;
     }
 
     (*subject_array)[*subject_counter] = new_subject;
