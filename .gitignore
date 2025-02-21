@@ -3,7 +3,7 @@
 
  # Testing related files
 testando*
-user_subjects.bin
+*.bin
 
- # My interface sketches 
+ # My interface sketches
 *.xopp
